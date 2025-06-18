@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentralized Lottery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎰 Decentralized Lottery</h1>
+            <p>Fair, Transparent, Blockchain-Powered</p>
+        </header>
+
+        <!-- Wallet Connection -->
+        <div class="wallet-section">
+            <div id="wallet-disconnected">
+                <button class="btn" onclick="connectWallet()">Connect Wallet</button>
+                <p style="margin-top: 10px; opacity: 0.8;">Connect your wallet to participate in the lottery</p>
+            </div>
+            <div id="wallet-connected" class="hidden">
+                <p><strong>Connected:</strong> <span id="wallet-address"></span></p>
+                <p><strong>Balance:</strong> <span id="wallet-balance"></span> ETH</p>
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alert-container"></div>
+
+        <!-- Owner Controls -->
+        <div id="owner-controls" class="card hidden">
+            <h3>🔑 Owner Controls</h3>
+            <div class="form-group">
+                <label>Entry Fee (ETH):</label>
+                <input type="number" id="entry-fee" placeholder="0.01" min="0.01" max="10" step="0.01">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <button class="btn" onclick="startNewLottery()">Start New Lottery</button>
+                <button class="btn btn-danger" onclick="cancelLottery()">Cancel Current Lottery</button>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="withdrawPlatformFees()">Withdraw Platform Fees</button>
+                <button class="btn btn-secondary" onclick="pauseContract()">Pause Contract</button>
+            </div>
+        </div>
+
+        <!-- Current Lottery Info -->
+        <div class="lottery-info">
+            <h2 style="text-align: center; margin-bottom: 25px;">Current Lottery Status</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">Round ID</div>
+                    <div class="value" id="current-round">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Status</div>
+                    <div class="value" id="lottery-status">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Entry Fee</div>
+                    <div class="value" id="entry-fee-display">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Total Pot</div>
+                    <div class="value" id="total-pot">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Participants</div>
+                    <div class="value" id="participant-count">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Time Remaining</div>
+                    <div class="value countdown" id="time-remaining">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Winner Announcement -->
+        <div id="winner-announcement" class="winner-announcement hidden">
+            <h2>🏆 We have a Winner!</h2>
+            <p><strong>Winner:</strong> <span id="winner-address"></span></p>
+            <p><strong>Prize:</strong> <span id="winner-amount"></span> ETH</p>
+        </div>
+
+        <!-- Action Cards -->
+        <div class="cards-grid">
+            <!-- Enter Lottery -->
+            <div class="card" id="enter-lottery-card">
+                <h3>🎫 Enter Lottery</h3>
+                <div class="form-group">
+                    <label>Secret Number:</label>
+                    <input type="number" id="secret-number" placeholder="Enter a secret number">
+                </div>
+                <div class="form-group">
+                    <label>Nonce:</label>
+                    <input type="number" id="nonce" placeholder="Enter a random nonce">
+                </div>
+                <button class="btn" onclick="generateCommitment()">Generate Commitment</button>
+                <div id="commitment-display" class="hidden" style="margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+                    <strong>Your Commitment:</strong>
+                    <div id="commitment-hash" style="word-break: break-all; font-family: monospace;"></div>
+                </div>
+                <button class="btn" id="enter-lottery-btn" onclick="enterLottery()" disabled>Enter Lottery</button>
+            </div>
+
+            <!-- Reveal Secret -->
+            <div class="card" id="reveal-secret-card">
+                <h3>🔓 Reveal Secret</h3>
+                <p style="margin-bottom: 15px;">Reveal your secret after the entry period ends</p>
+                <div class="form-group">
+                    <label>Your Secret Number:</label>
+                    <input type="number" id="reveal-secret" placeholder="Enter your secret">
+                </div>
+                <div class="form-group">
+                    <label>Your Nonce:</label>
+                    <input type="number" id="reveal-nonce" placeholder="Enter your nonce">
+                </div>
+                <button class="btn btn-secondary" onclick="revealSecret()">Reveal Secret</button>
+            </div>
+
+            <!-- Lottery Actions -->
+            <div class="card">
+                <h3>⚡ Lottery Actions</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="selectWinner()">Select Winner</button>
+                    <p style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">
+                        Advances lottery phases and selects winner when ready
+                    </p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="distributeFunds()">Distribute Funds</button>
+                    <p style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">
+                        Send winnings to the selected winner
+                    </p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn" onclick="refreshLotteryInfo()">Refresh Info</button>
+                    <p style="font-size: 0.9rem; margin-top: 5px; opacity: 0.8;">
+                        Update lottery status and countdown
+                    </p>
+                </div>
+                <div class="alert alert-info" style="margin-top: 15px; font-size: 0.9rem;">
+                    <strong>Note:</strong> If entry time has ended but you can't reveal secrets, click "Select Winner" to advance the lottery phase.
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants List -->
+        <div class="participants-section">
+            <h3>👥 Participants</h3>
+            <div id="participants-list">
+                <p>No participants yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
